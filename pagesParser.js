@@ -18,7 +18,7 @@ const requestForData = (endpoint, iteration = 1, items = []) => {
     request(endpoint, {},  (err, res, body) => {
       const dom = parse(body);
       const maxNumberOfPages = dom.querySelectorAll('.pager .item').length;
-      const links = [...items, ...olxTableOfferParser(dom)];
+      const links = [...items, ...olxTableOfferParser(dom).filter((v) => items.indexOf(v) === -1)];
 
       if (iteration > maxNumberOfPages) {
         return resolve(links)
