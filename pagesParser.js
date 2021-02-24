@@ -1,12 +1,8 @@
 const request = require('request');
 const { parse } = require('node-html-parser');
 
-const initEndpoint = 'https://www.olx.pl/motoryzacja/samochody/kia/ceed/?search%5Bfilter_float_price%3Afrom%5D=22500&search%5Bfilter_float_price%3Ato%5D=35000&search%5Bfilter_enum_car_body%5D%5B0%5D=hatchback';
+const initEndpoint = 'https://www.olx.pl/motoryzacja/samochody/kia/ceed/?search%5Bfilter_float_price%3Afrom%5D=22500&search%5Bfilter_float_price%3Ato%5D=35000&search%5Bfilter_enum_car_body%5D%5B0%5D=hatchback&page=1';
 
-
-const oxlIsNextPage = (dom) => {
-  dom.querySelector('.pager')
-}
 
 const olxTableOfferParser = (tableOfferDom) => {
   const offersTable = tableOfferDom.querySelector('#offers_table');
@@ -16,27 +12,29 @@ const olxTableOfferParser = (tableOfferDom) => {
   return carLinkList;
 }
 
-const requestForData = async (endpoint, resolver) => {
-  return await new Promise((resolve) => {
+const requestForData = (endpoint, iteration = 1, items = []) => {
+  return new Promise((resolve, reject) => {
+
     request(endpoint, {},  (err, res, body) => {
       const dom = parse(body);
-      carLinkList = [...olxTableOfferParser(dom)];
-      resolve(carLinkList);
-      // resolver(oxlIsNextPage(dom));
+      const maxNumberOfPages = dom.querySelectorAll('.pager .item').length;
+      const links = [...items, ...olxTableOfferParser(dom)];
+
+      if (iteration > maxNumberOfPages) {
+        return resolve(links)
+      }
+
+      return resolve(requestForData(`${endpoint}&page=${iteration}`, ++iteration, links));
     })
   })
-
 }
 
 const olxParser = async (endpoint = initEndpoint) => {
   let carLinkList = [];
   const response = await new Promise((resolve) => {
-    request(endpoint, {},  (err, res, body) => {
-      const dom = parse(body);
-      carLinkList = [...olxTableOfferParser(dom)];
-      resolve(carLinkList);
-      // resolver(oxlIsNextPage(dom));
-    })
+    const links = requestForData(endpoint)
+
+    resolve(links)
   })
 
   return response;
@@ -55,6 +53,17 @@ const getValueFromElement = (domElement, selector) => {
   return null;
 }
 
+
+const availableSearchParameters = [
+  { name: 'owner', translate: 'Oferta od' },
+  { name: 'distance', translate: 'Przebieg'},
+  { name: 'power', translate: 'Moc'},
+  { name: 'doors', translate: 'Liczba drzwi'},
+  { name: 'color', translate: 'Kolor'},
+  { name: 'year', translate: 'Rok produkcji'},
+  { name: 'noAccident', translate: 'Bezwypadkowy'}
+]
+
 const getOfferData =  (link) => {
   if (link.includes('otomoto')) {
     const offer = new Promise((resolve) => {
@@ -64,23 +73,26 @@ const getOfferData =  (link) => {
         const price = getValueFromElement(dom, '.offer-price__number');
         const parametersSection = dom.querySelector('#parameters');
         const parametersElements = Array.from(parametersSection.querySelectorAll('.offer-params__item'));
-        const availableSearchParameters = ['Oferta od', 'Przebieg', 'Moc', 'Liczba drzwi', 'Kolor', 'Rok produkcji', 'Liczba drzwi', 'Bezwypadkowy']
         const parametersValue = availableSearchParameters.map((parameter) => {
-          const search = parametersElements.find((item) => item.toString().includes(parameter))
+          const search = parametersElements.find((item) => item.toString().includes(parameter.translate))
           if (search) {
             const value = getValueFromElement(search, '.offer-params__value');
             return {
-              parameter,
-              value
+              [parameter.name]: value,
             };
           }
 
           return null;
-        }).filter(i => i)
+        }).reduce((acc, item) => {
+          return {
+            ...acc,
+            ...item
+          }
+        }, {})
 
         resolve({
           price,
-          parameters: parametersValue,
+          ...parametersValue,
           link
         });
       })
@@ -93,7 +105,7 @@ const getOfferData =  (link) => {
 }
 
 const otomotoParser = async (carList) => {
-  const carOffer = await Promise.all(carList.map(getOfferData))
+  const carOffer = await Promise.all(carList.map(getOfferData).filter(e => !!e))
 
   return carOffer;
 }
