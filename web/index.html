@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cars scraper</title>
+  <style>
+    body {
+      background-color: #f2f4f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    a,
+    button {
+      padding: 17px 41px;
+      background-color:#002f34;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 9px;
+      font-size: 22px;
+      border: 0;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <button id="button">Get data!</button>
+  <script>
+    (() => {
+      const button = document.querySelector('#button');
+      button.addEventListener('click', async () => {
+        const blob = await (await fetch('/data')).blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "carlist.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        a.remove()
+      });
+    })()
+  </script>
+</body>
+</html>
