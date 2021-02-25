@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const json2xls = require('json2xls');
 
-const { olxParser, otomotoParser } = require('./pagesParser');
+const { getCarData } = require('./pagesParser');
 
 const app = express();
 const port = 3000;
@@ -18,9 +18,8 @@ app.get('/', (req, res) => {
 
 app.get('/data', async (req, res, next) => {
   try {
-    const linksToOffers = await olxParser();
-    const offer = await otomotoParser(linksToOffers)
-    res.xls('data.xlsx', offer);
+    const data = await getCarData();
+    res.xls('data.xlsx', data);
     next()
   } catch (error) {
     next(error);

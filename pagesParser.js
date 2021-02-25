@@ -4,7 +4,7 @@ const { parse } = require('node-html-parser');
 const initEndpoint = 'https://www.olx.pl/motoryzacja/samochody/kia/ceed/?search%5Bfilter_float_price%3Afrom%5D=22500&search%5Bfilter_float_price%3Ato%5D=35000&search%5Bfilter_enum_car_body%5D%5B0%5D=hatchback&page=1';
 
 
-const olxTableOfferParser = (tableOfferDom) => {
+const getLinkFromTable = (tableOfferDom) => {
   const offersTable = tableOfferDom.querySelector('#offers_table');
   const carHyperlinkList = offersTable.querySelectorAll('.thumb');
   const carLinkList = Array.from(carHyperlinkList).map((car) => car.getAttribute('href'));
@@ -12,28 +12,26 @@ const olxTableOfferParser = (tableOfferDom) => {
   return carLinkList;
 }
 
-const requestForData = (endpoint, iteration = 1, items = []) => {
+const requestForPageData = (endpoint, iteration = 1, items = []) => {
   return new Promise((resolve, reject) => {
-
     request(endpoint, {},  (err, res, body) => {
       const dom = parse(body);
       const maxNumberOfPages = dom.querySelectorAll('.pager .item').length;
-      const links = [...items, ...olxTableOfferParser(dom).filter((v) => items.indexOf(v) === -1)];
+      const links = [...items, ...getLinkFromTable(dom).filter((v) => items.indexOf(v) === -1)];
 
       if (iteration > maxNumberOfPages) {
         return resolve(links)
       }
 
-      return resolve(requestForData(`${endpoint}&page=${iteration}`, ++iteration, links));
+      return resolve(requestForPageData(`${endpoint}&page=${iteration}`, ++iteration, links));
     })
   })
 }
 
-const olxParser = async (endpoint = initEndpoint) => {
+const parseSearchPage = async (endpoint = initEndpoint) => {
   let carLinkList = [];
   const response = await new Promise((resolve) => {
-    const links = requestForData(endpoint)
-
+    const links = requestForPageData(endpoint)
     resolve(links)
   })
 
@@ -104,13 +102,19 @@ const getOfferData =  (link) => {
   return null;
 }
 
-const otomotoParser = async (carList) => {
+const getOffersData = async (carList) => {
   const carOffer = await Promise.all(carList.map(getOfferData).filter(e => !!e))
 
   return carOffer;
 }
 
+const getCarData = async () => {
+  const offerLinks = await parseSearchPage();
+  const offers = await getOffersData(offerLinks);
+
+  return offers;
+}
+
 module.exports = {
-  olxParser,
-  otomotoParser,
+  getCarData,
 }
