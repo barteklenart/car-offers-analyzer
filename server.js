@@ -3,15 +3,15 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const json2xls = require('json2xls');
 
-const { getCarData } = require('./pagesParser');
+const { getPageData } = require('./api/getPageData');
 
 const app = express();
 const port = 3000;
 
-
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(json2xls.middleware);
+app.use(express.static('web'))
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname+'/web/index.html'))
@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
 app.post('/data', async (req, res, next) => {
   try {
     const { url } = req.body;
-    const data = await getCarData(url);
+    const data = await getPageData(url);
     res.xls('data.xlsx', data);
     next()
   } catch (error) {
