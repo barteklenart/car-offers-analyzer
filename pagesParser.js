@@ -3,34 +3,35 @@ const { parse } = require('node-html-parser');
 
 const getLinkFromTable = (tableOfferDom) => {
   const offersTable = tableOfferDom.querySelector('#offers_table');
-  const carHyperlinkList = offersTable.querySelectorAll('.thumb');
-  const carLinkList = Array.from(carHyperlinkList).map((car) => car.getAttribute('href'));
+  const carHyperlinks = offersTable.querySelectorAll('.thumb');
+  const carUrls = Array.from(carHyperlinks).map((car) => car.getAttribute('href'));
 
-  return carLinkList;
+  return carUrls;
 }
 
-const requestForPageData = (endpoint, iteration = 1, items = []) => {
+const requestForPageData = (url, iteration = 1, currentUrls = []) => {
   return new Promise((resolve, reject) => {
-    request(endpoint, {},  (err, res, body) => {
+    request(url, {},  (error, res, body) => {
       const dom = parse(body);
-      const maxNumberOfPages = dom.querySelectorAll('.pager .item').length;
-      const links = [...items, ...getLinkFromTable(dom).filter((v) => items.indexOf(v) === -1)];
+      const lastPageNumber = dom.querySelectorAll('.pager .item').length;
+      const uniquePageUrls = getLinkFromTable(dom).filter((v) => currentUrls.indexOf(v) === -1);
+      const urls = [...currentUrls, ...uniquePageUrls];
 
-      if (iteration > maxNumberOfPages) {
-        return resolve(links)
+      if (error) {
+        return reject(error)
       }
 
-      return resolve(requestForPageData(`${endpoint}&page=${iteration}`, ++iteration, links));
+      if (iteration > lastPageNumber) {
+        return resolve(urls);
+      }
+
+      return resolve(requestForPageData(`${url}&page=${iteration}`, ++iteration, urls));
     })
   })
 }
 
 const parseSearchPage = async (endpoint) => {
-  let carLinkList = [];
-  const response = await new Promise((resolve) => {
-    const links = requestForPageData(endpoint)
-    resolve(links)
-  })
+  const response = await requestForPageData(endpoint);
 
   return response;
 }
@@ -57,17 +58,16 @@ const availableSearchParameters = [
   { name: 'color', translate: 'Kolor'},
   { name: 'year', translate: 'Rok produkcji'},
   { name: 'noAccident', translate: 'Bezwypadkowy'}
-]
+];
 
-const getOfferData =  (link) => {
-  if (link.includes('otomoto')) {
+const getOfferData =  (url) => {
+  if (url.includes('otomoto')) {
     const offer = new Promise((resolve) => {
-      request(link, {},  (err, res, body) => {
-
+      request(url, {},  (err, res, body) => {
         const dom = parse(body);
         const price = getValueFromElement(dom, '.offer-price__number');
-        const parametersSection = dom.querySelector('#parameters');
-        const parametersElements = Array.from(parametersSection.querySelectorAll('.offer-params__item'));
+        const domParametersSection = dom.querySelector('#parameters');
+        const parametersElements = Array.from(domParametersSection.querySelectorAll('.offer-params__item'));
         const parametersValue = availableSearchParameters.map((parameter) => {
           const search = parametersElements.find((item) => item.toString().includes(parameter.translate))
           if (search) {
@@ -78,7 +78,9 @@ const getOfferData =  (link) => {
           }
 
           return null;
-        }).reduce((acc, item) => {
+        })
+        .filter(pv => !!pv)
+        .reduce((acc, item) => {
           return {
             ...acc,
             ...item
@@ -88,7 +90,7 @@ const getOfferData =  (link) => {
         resolve({
           price,
           ...parametersValue,
-          link
+          url
         });
       })
     })
@@ -100,14 +102,14 @@ const getOfferData =  (link) => {
 }
 
 const getOffersData = async (carList) => {
-  const carOffer = await Promise.all(carList.map(getOfferData).filter(e => !!e))
+  const carOffers = await Promise.all(carList.map(getOfferData).filter(e => !!e));
 
-  return carOffer;
+  return carOffers;
 }
 
 const getCarData = async (mainUrl) => {
-  const offerLinks = await parseSearchPage(mainUrl);
-  const offers = await getOffersData(offerLinks);
+  const offersUrls = await parseSearchPage(mainUrl);
+  const offers = await getOffersData(offersUrls);
 
   return offers;
 }
