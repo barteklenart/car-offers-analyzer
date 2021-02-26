@@ -7,14 +7,59 @@
   <title>Cars scraper</title>
   <style>
     body {
-      background-color: #f2f4f5;
       margin: 0;
       padding: 0;
+    }
+
+    .wrapper {
       display: flex;
       align-items: center;
       justify-content: center;
       flex-direction: column;
       height: 100vh;
+      background-color: #f2f4f5;
+    }
+
+    .cover {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+      background: #7f7e7eb5;
+    }
+
+    .cover--active {
+      display: flex;
+    }
+
+    .lds-dual-ring {
+      display: inline-block;
+      width: 80px;
+      height: 80px;
+    }
+    .lds-dual-ring:after {
+      content: " ";
+      display: block;
+      width: 64px;
+      height: 64px;
+      margin: 8px;
+      border-radius: 50%;
+      border: 6px solid #fff;
+      border-color: #fff transparent #fff transparent;
+      animation: lds-dual-ring 1.2s linear infinite;
+    }
+    @keyframes lds-dual-ring {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .input-section {
@@ -52,34 +97,47 @@
   </style>
 </head>
 <body>
-  <div class="input-section">
-    <input class="input" type="text" id="input">
-    <span class="hint">https://www.olx.pl/motoryzacja/samochody/kia/ceed/?search%5Bfilter_float_price%3Afrom%5D=22500&search%5Bfilter_float_price%3Ato%5D=35000&search%5Bfilter_enum_car_body%5D%5B0%5D=hatchback</span>
+  <div class="wrapper">
+    <div class="input-section">
+      <input class="input" type="text" id="input">
+      <span class="hint">https://www.olx.pl/motoryzacja/samochody/kia/ceed/?search%5Bfilter_float_price%3Afrom%5D=22500&search%5Bfilter_float_price%3Ato%5D=35000&search%5Bfilter_enum_car_body%5D%5B0%5D=hatchback</span>
+    </div>
+    <button id="button" class="btn">Get data!</button>
   </div>
-  <button id="button" class="btn">Get data!</button>
+  <div class="cover">
+    <div class="lds-dual-ring"></div>
+  </div>
   <script>
     (() => {
       const button = document.querySelector('#button');
       button.addEventListener('click', async () => {
         const inputData = document.querySelector('#input').value;
-        const blob = await(
-          await fetch('/data', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              url: inputData,
+        if (!inputData) return;
+        const cover = document.querySelector('.cover');
+        cover.classList.add('cover--active');
+        try {
+          const blob = await(
+            await fetch('/data', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                url: inputData,
+              })
             })
-          })
-        ).blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "carlist.xlsx";
-        document.body.appendChild(a);
-        a.click();
-        a.remove()
+          ).blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = "carlist.xlsx";
+          document.body.appendChild(a);
+          a.click();
+          a.remove()
+        } catch (error) {
+        } finally {
+          cover.classList.remove('cover--active');
+        }
       });
     })()
   </script>
