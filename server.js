@@ -10,15 +10,17 @@ const port = 3000;
 
 
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(json2xls.middleware);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname+'/web/index.html'))
 })
 
-app.get('/data', async (req, res, next) => {
+app.post('/data', async (req, res, next) => {
   try {
-    const data = await getCarData();
+    const { url } = req.body;
+    const data = await getCarData(url);
     res.xls('data.xlsx', data);
     next()
   } catch (error) {

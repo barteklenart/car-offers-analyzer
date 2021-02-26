@@ -13,11 +13,33 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-direction: column;
       height: 100vh;
     }
 
-    a,
-    button {
+    .input-section {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      margin-bottom: 10px;
+    }
+
+    .input {
+      padding: 17px 40px;
+      border: 0px;
+      border-radius: 9px;
+      display: inline-block;
+      width: 50%;
+      margin-bottom: 8px;
+    }
+
+    .hint {
+      color: #8b8b8b;
+      font-size: 12px;
+      font-style: italic;
+    }
+
+    .btn {
       padding: 17px 41px;
       background-color:#002f34;
       color: #fff;
@@ -30,12 +52,27 @@
   </style>
 </head>
 <body>
-  <button id="button">Get data!</button>
+  <div class="input-section">
+    <input class="input" type="text" id="input">
+    <span class="hint">https://www.olx.pl/motoryzacja/samochody/kia/ceed/?search%5Bfilter_float_price%3Afrom%5D=22500&search%5Bfilter_float_price%3Ato%5D=35000&search%5Bfilter_enum_car_body%5D%5B0%5D=hatchback</span>
+  </div>
+  <button id="button" class="btn">Get data!</button>
   <script>
     (() => {
       const button = document.querySelector('#button');
       button.addEventListener('click', async () => {
-        const blob = await (await fetch('/data')).blob();
+        const inputData = document.querySelector('#input').value;
+        const blob = await(
+          await fetch('/data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              url: inputData,
+            })
+          })
+        ).blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

@@ -1,9 +1,6 @@
 const request = require('request');
 const { parse } = require('node-html-parser');
 
-const initEndpoint = 'https://www.olx.pl/motoryzacja/samochody/kia/ceed/?search%5Bfilter_float_price%3Afrom%5D=22500&search%5Bfilter_float_price%3Ato%5D=35000&search%5Bfilter_enum_car_body%5D%5B0%5D=hatchback&page=1';
-
-
 const getLinkFromTable = (tableOfferDom) => {
   const offersTable = tableOfferDom.querySelector('#offers_table');
   const carHyperlinkList = offersTable.querySelectorAll('.thumb');
@@ -28,7 +25,7 @@ const requestForPageData = (endpoint, iteration = 1, items = []) => {
   })
 }
 
-const parseSearchPage = async (endpoint = initEndpoint) => {
+const parseSearchPage = async (endpoint) => {
   let carLinkList = [];
   const response = await new Promise((resolve) => {
     const links = requestForPageData(endpoint)
@@ -108,8 +105,8 @@ const getOffersData = async (carList) => {
   return carOffer;
 }
 
-const getCarData = async () => {
-  const offerLinks = await parseSearchPage();
+const getCarData = async (mainUrl) => {
+  const offerLinks = await parseSearchPage(mainUrl);
   const offers = await getOffersData(offerLinks);
 
   return offers;
