@@ -5,7 +5,7 @@ const getValueFromElement = (domElement, selector) => {
   if (domElement) {
     const value = domElement.querySelector(selector);
     if (value) {
-      return value.innerText.replace(/\n/ig, '').replace(/ /ig, '');
+      return value.innerText.replace(/\n| |km|zł|PLN|cm3|cm³/ig, '');
     }
 
     return null;
@@ -19,6 +19,7 @@ const scrapDataFromOffer = (body, config) => {
   const price = getValueFromElement(dom, config.priceSelector);
   const domParametersSection = dom.querySelector(config.offerDetailsSelector);
   const parametersElements = Array.from(domParametersSection.querySelectorAll(config.offerDetailItemSelector));
+  const location = getValueFromElement(dom, config.offerLocation);
   const parametersValue = config.searchParameter.map((parameter) => {
     const search = parametersElements.find((item) => item.toString().includes(parameter.translate))
     if (search) {
@@ -38,8 +39,9 @@ const scrapDataFromOffer = (body, config) => {
   }, {});
 
   return {
+    price,
     ...parametersValue,
-    price
+    location
   }
 }
 
@@ -52,12 +54,14 @@ const config = {
       { name: 'doors', translate: 'Liczba drzwi' },
       { name: 'color', translate: 'Kolor' },
       { name: 'year', translate: 'Rok produkcji' },
-      { name: 'noAccident', translate: 'Bezwypadkowy' }
+      { name: 'noAccident', translate: 'Bezwypadkowy' },
+      { name: 'engineCapacity', translate: 'Pojemność skokowa' }
     ],
     priceSelector: '.offer-price__number',
     offerDetailsSelector: '#parameters',
     offerDetailItemSelector: '.offer-params__item',
-    offerDetailItemValueSelector: '.offer-params__value'
+    offerDetailItemValueSelector: '.offer-params__value',
+    offerLocation: '.seller-box__seller-address__label'
   },
   olx: {
     searchParameter: [
@@ -72,7 +76,8 @@ const config = {
     priceSelector: '.pricelabel__value',
     offerDetailsSelector: '.offer-details',
     offerDetailItemSelector: '.offer-details__item',
-    offerDetailItemValueSelector: '.offer-details__value'
+    offerDetailItemValueSelector: '.offer-details__value',
+    offerLocation: '.offer-user__address address p'
   }
 }
 
