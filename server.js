@@ -11,7 +11,7 @@ const port = 3000;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(json2xls.middleware);
-app.use(express.static('web'))
+app.use(express.static('web'));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname+'/web/index.html'))
@@ -22,7 +22,7 @@ app.post('/data', async (req, res, next) => {
     const { url } = req.body;
     const data = await getPageData(url);
     res.xls('data.xlsx', data);
-    next()
+    next();
   } catch (error) {
     next(error);
   }
